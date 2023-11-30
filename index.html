@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+   
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title tkey="title">Calculadora de rutas</title>
+    <meta name="description" content="Calculadora de puntos, para KOte">
+    <meta name="author" content="GaelVM">
+    <!-- Puedes incluir tus estilos CSS aquí -->
+    
+</head>
+<body>
+
+    <label for="input_Coord1">Coordenadas:</label><br>
+    <textarea id="input_Coord1" rows="5"></textarea><br>    
+    <button id="btnSend">Obtener Datos</button><br>
+   
+
+    <label for="input_Coord2">Resultado:</label><br>
+    <textarea id="input_Coord2" rows="5" readonly></textarea><br>
+    <button id="btnClear">Limpiar Datos</button>
+    <button id="btnCopy">Copiar</button>
+    <script>
+        var _PageTag = 'candy';
+var _LangTag = 'langObj_' + _PageTag;
+        var _ReloadTime = 10 * 60 * 1000; // Relaod time, default 10 mins
+        var _ReloadHandle = null;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Asignación de eventos a los botones
+            document.getElementById("btnSend").addEventListener("click", getData);
+            document.getElementById("btnClear").addEventListener("click", clearData);
+            document.getElementById("btnCopy").addEventListener("click", copy);
+
+            document.querySelectorAll("input").forEach(function (input) {
+                input.setAttribute("autocomplete", "off");
+                input.addEventListener("focus", function (event) {
+                    event.target.select();
+                    setRelaod();
+                });
+            });
+
+            // Cargar datos almacenados localmente
+            var inputCoord1 = document.getElementById("input_Coord1");
+            if (localStorage.getItem("input_Coord1") !== null) {
+                inputCoord1.value = localStorage.getItem("input_Coord1");
+            }
+
+            setRelaod();
+        });
+
+        function setRelaod() {
+            clearInterval(_ReloadHandle);
+            _ReloadHandle = setInterval(function () { location.reload(); }, _ReloadTime);
+        };
+
+        function clearData() {
+            document.getElementById("input_Coord1").value = "";
+            document.getElementById("input_Coord2").value = "";
+        }
+
+        function getData() {
+            setRelaod();
+            try {
+                document.getElementById("input_Coord2").value = ""; // Limpiar el campo de resultado
+                
+                var coordString = document.getElementById("input_Coord1").value.trim();
+                var coords = parseCoordinates(coordString);
+
+                if (coords.length < 2) {
+                    throw "Error en la entrada de coordenadas.";
+                }
+
+                var results = calculateDistanceAndTime(coords);
+                document.getElementById("input_Coord2").value = results.join('\n');
+            } catch (error) {
+                // Manejar errores, por ejemplo, mostrar un mensaje de alerta
+                swal("Error", "Hubo un problema al procesar las coordenadas: " + error, "error");
+            }
+        }
+
+        function parseCoordinates(coordString) {
+            var coordinates = [];
+            var regCoord = /(([-+]?)([\d]{1,3})((\.)(\d+))?)(\s*)([,|，])(\s*)(([-+]?)([\d]{1,3})((\.)(\d+))?)/;
+            var arrCoords = coordString.split("\n");
+
+            for (var i = 0; i < arrCoords.length; i++) {
+                var arrCoord = regCoord.exec(arrCoords[i]);
+                if (arrCoord.length === 0) {
+                    throw "Formato de coordenada incorrecto.";
+                }
+
+                let lat = parseFloat(arrCoord[1]);
+                let lon = parseFloat(arrCoord[10]);
+
+                if (isNaN(lat) || isNaN(lon)) {
+                    throw "Error en las coordenadas.";
+                }
+
+                coordinates.push({ lat: lat, lon: lon });
+            }
+
+            return coordinates;
+        }
+
+        function calculateDistanceAndTime(coords) {
+            var results = [];
+            for (var i = 0; i < coords.length - 1; i++) {
+                var distance = calculateDistance(coords[i], coords[i + 1]);
+                var time = calculateTime(distance);
+                results.push(`${coords[i].lat},${coords[i].lon} (${time})`);
+            }
+
+            // Agregar la última coordenada con "END"
+            results.push(`${coords[coords.length - 1].lat},${coords[coords.length - 1].lon}(FIN)`);
+            return results;
+        }
+
+        function calculateDistance(coord1, coord2) {
+            var R = 6371; // radio de la Tierra en km
+            var dLat = deg2rad(coord2.lat - coord1.lat);
+            var dLon = deg2rad(coord2.lon - coord1.lon);
+
+            var a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(coord1.lat)) * Math.cos(deg2rad(coord2.lat)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            var distance = R * c;
+
+            return distance.toFixed(2);
+        }
+
+        function calculateTime(distance) {
+            var resultado = parseFloat(distance);
+            var tiempo;
+
+            //Usamos la lógica de espera de tiempo que usaba lancelot
+            switch (true) {
+                case (resultado == 0):
+                case (resultado >= 0 && resultado < 1):
+                    tiempo = 0;
+                    break;
+                case (resultado >= 1 && resultado < 2):
+                    tiempo = 1;
+                    break;
+                case (resultado >= 2 && resultado < 3):
+                    tiempo = 2;
+                    break;
+                case (resultado >= 3 && resultado < 4):
+                    tiempo = 3;
+                    break;
+                case (resultado >= 4 && resultado < 5):
+                    tiempo = 4;
+                    break;
+                case (resultado >= 5 && resultado < 8):
+                    tiempo = 5;
+                    break;
+                case (resultado >= 8 && resultado < 10):
+                    tiempo = 7;
+                    break;
+                case (resultado >= 10 && resultado < 15):
+                    tiempo = 9;
+                    break;
+                case (resultado >= 15 && resultado < 20):
+                    tiempo = 12;
+                    break;
+                case (resultado >= 20 && resultado < 25):
+                    tiempo = 15;
+                    break;
+                case (resultado >= 25 && resultado < 30):
+                    tiempo = 17;
+                    break;
+                case (resultado >= 30 && resultado < 35):
+                    tiempo = 18;
+                    break;
+                case (resultado >= 35 && resultado < 40):
+                    tiempo = 19;
+                    break;
+                case (resultado >= 40 && resultado < 50):
+                    tiempo = 20;
+                    break;
+                case (resultado >= 50 && resultado < 60):
+                    tiempo = 21;
+                    break;
+                case (resultado >= 60 && resultado < 65):
+                    tiempo = 22;
+                    break;
+                case (resultado >= 65 && resultado < 70):
+                    tiempo = 23;
+                    break;
+                case (resultado >= 70 && resultado < 80):
+                    tiempo = 24;
+                    break;
+                case (resultado >= 80 && resultado < 90):
+                    tiempo = 25;
+                    break;
+                case (resultado >= 90 && resultado < 100):
+                    tiempo = 26;
+                    break;
+                case (resultado >= 100 && resultado < 125):
+                    tiempo = 29;
+                    break;
+                case (resultado >= 125 && resultado < 150):
+                    tiempo = 32;
+                    break;
+                case (resultado >= 150 && resultado < 175):
+                    tiempo = 34;
+                    break;
+                case (resultado >= 175 && resultado < 201):
+                    tiempo = 37;
+                    break;
+                case (resultado >= 201 && resultado < 250):
+                    tiempo = 41;
+                    break;
+                case (resultado >= 250 && resultado < 300):
+                    tiempo = 46;
+                    break;
+                case (resultado >= 300 && resultado < 350):
+                    tiempo = 50;
+                    break;
+                case (resultado >= 350 && resultado < 400):
+                    tiempo = 54;
+                    break;
+                case (resultado >= 400 && resultado < 450):
+                    tiempo = 58;
+                    break;
+                case (resultado >= 450 && resultado < 500):
+                    tiempo = 62;
+                    break;
+                case (resultado >= 500 && resultado < 550):
+                    tiempo = 66;
+                    break;
+                case (resultado >= 550 && resultado < 600):
+                    tiempo = 70;
+                    break;
+                case (resultado >= 600 && resultado < 650):
+                    tiempo = 74;
+                    break;
+                case (resultado >= 650 && resultado < 700):
+                    tiempo = 77;
+                    break;
+                case (resultado >= 700 && resultado < 800):
+                    tiempo = 84;
+                    break;
+                case (resultado >= 800 && resultado < 900):
+                    tiempo = 91;
+                    break;
+                case (resultado >= 900 && resultado < 1000):
+                    tiempo = 98;
+                    break;
+                case (resultado >= 1000 && resultado < 1100):
+                    tiempo = 104;
+                    break;
+                case (resultado >= 1100 && resultado < 1200):
+                    tiempo = 111;
+                    break;
+                case (resultado >= 1200 && resultado < 1350):
+                    tiempo = 117;
+                    break;
+                case (resultado >= 1350):
+                    tiempo = 130;
+                    break;
+            }
+
+            var horas = Math.floor((tiempo % (60 * 24)) / 60);
+            var minutos = Math.floor((tiempo % 60));
+
+            return `${minutos}mins`;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        function copy() {
+            setRelaod();
+            var inputCoord2 = document.getElementById("input_Coord2");
+            var langobj = getStorgeItemObj('langObj');
+
+var Kote = "\r\n"; //esto es una variable para agregar un salto de linea :)
+var s = "";
+
+if (inputCoord2.value.trim().length > 0) {
+    s += inputCoord2.value.trim() + Kote;
+    s += "--=" + "Power By: GaelVM" + "=--" + Kote;  // No me quites los creditos si no, ya no vuelvo a desarrollarte nada XD
+    s += "Desarrollado para:" + Kote;
+    s += "www.Kote.com";
+    copyText(s);
+    // Mostrar un mensaje de copia exitosa
+    alert( "Ruta copiada correctamente.", "success");
+  
+    
+}
+            else {
+                swal("", langobj.alert_copy_Fail, "info");
+            }
+        }
+
+        function copyText(s) {
+            var clip_area = document.createElement('textarea');
+            clip_area.textContent = s;
+
+            document.body.appendChild(clip_area);
+            clip_area.select();
+
+            document.execCommand('copy');
+            clip_area.remove();
+        }
+
+        function getStorgeItemObj(item) {
+            var json = localStorage.getItem(item);
+            return JSON.parse(json);
+        }
+    </script>
+
+    <!-- Puedes incluir tus scripts adicionales aquí -->
+
+</body>
+</html>
