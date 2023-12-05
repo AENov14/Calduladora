@@ -1,3 +1,3 @@
 # Calduladora
 Calculadora de distancia
-https://calculadorakote.vercel.app/
+https://calculadora-ae.vercel.app/
